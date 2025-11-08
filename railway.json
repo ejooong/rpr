@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "composer install --optimize-autoloader --no-interaction --ignore-platform-req=ext-gd --ignore-platform-req=ext-curl && npm install && npm run build"
+  },
+  "deploy": {
+    "startCommand": "php -S 0.0.0.0:80 -t public",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}

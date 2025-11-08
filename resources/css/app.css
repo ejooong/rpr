@@ -1,0 +1,42 @@
+/* resources/css/app.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom NasDem Theme */
+.bg-nasdem-gradient {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+}
+
+.text-nasdem-blue {
+    color: #1e3a8a;
+}
+
+.bg-nasdem-blue {
+    background-color: #1e3a8a;
+}
+
+.border-nasdem-blue {
+    border-color: #1e3a8a;
+}
+
+.hover\:bg-nasdem-blue:hover {
+    background-color: #1e3a8a;
+}
+
+/* Custom button styles */
+.btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200;
+}
+
+.btn-success {
+    @apply bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition duration-200;
+}
+
+.btn-warning {
+    @apply bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded transition duration-200;
+}
+
+.btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-200;
+}

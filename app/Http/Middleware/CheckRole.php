@@ -1,0 +1,34 @@
+<?php
+// app/Http/Middleware/CheckRole.php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class CheckRole
+{
+    public function handle(Request $request, Closure $next, ...$roles): Response
+    {
+        if (!auth()->check()) {
+            return redirect('/login');
+        }
+
+        $user = auth()->user();
+        
+        // Jika tidak ada roles yang diberikan, lanjutkan
+        if (empty($roles)) {
+            return $next($request);
+        }
+        
+        // Cek apakah user memiliki salah satu role yang diizinkan
+        foreach ($roles as $role) {
+            if ($user->role === $role) {
+                return $next($request);
+            }
+        }
+
+        abort(403, 'Unauthorized access.');
+    }
+}

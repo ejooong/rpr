@@ -1,5 +1,5 @@
-[providers]
-php = "8.2"
+[build]
+providers = ["php@8.2"]
 
 [phases.setup]
 cmds = [
@@ -8,7 +8,11 @@ cmds = [
 ]
 
 [phases.install]
-cmds = ["composer install --no-dev --optimize-autoloader --ignore-platform-reqs"]
+cmds = [
+    "composer install --no-dev --optimize-autoloader --ignore-platform-reqs",
+    "npm install",
+    "npm run build"
+]
 
 [phases.build]
 cmds = [

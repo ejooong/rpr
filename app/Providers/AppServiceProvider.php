@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 use App\Models\Produksi;
 use App\Observers\ProduksiObserver;
 
@@ -19,20 +20,13 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
- public function boot(): void
+    public function boot(): void
     {
         Produksi::observe(ProduksiObserver::class);
-    }
-    Force HTTPS in production (Railway)
+
+        // Force HTTPS in production (Railway)
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
-            
-            // Set secure session options
-            Config::set('session.secure', true);
-            Config::set('session.same_site', 'lax');
-            
-            // Trust Railway proxy
-            $this->app['request']->server->set('HTTPS', 'on');
         }
-    
+    }
 }

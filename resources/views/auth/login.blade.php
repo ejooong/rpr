@@ -24,7 +24,7 @@
         <div class="flex login-container rounded-lg shadow-2xl overflow-hidden mx-auto max-w-sm lg:max-w-4xl">
             <!-- Photo Section -->
             <div class="hidden lg:block lg:w-1/2 bg-cover bg-center relative"
-                style="background-image:url('{{ asset('images/anggota-dewan-paksulaeman.jpg') }}')">
+                style="background-image:url('{{ asset('images/logo_rpr_1.jpg') }}')">
                 <!-- Overlay dengan informasi di bagian bawah -->
                 <div class="absolute inset-0 flex items-end p-6">
                     <div class="text-white text-center bg-black bg-opacity-40 rounded-2xl p-1 w-full">
@@ -39,19 +39,10 @@
             <div class="w-full p-8 lg:w-1/2">
                 <div class="text-center mb-8">
                     <!-- Logo Rumah Pangan Rakyat -->
-<!-- Logo Rumah Pangan Rakyat -->
-<div class="flex justify-center mb-4">
-    <div class="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-lg border border-green-200">
-        <img 
-            src="{{ asset('images/1.png') }}" 
-            alt="Logo Rumah Pangan Rakyat"
-            class="object-contain"
-            style="width: 7rem; height: 7rem;"
-        >
-    </div>
-</div>
+                    <!-- Logo Rumah Pangan Rakyat -->
+
                     <h2 class="text-2xl font-semibold text-gray-800">Rumah Pangan Rakyat</h2>
-                    <p class="text-xl text-gray-600 mt-2">Selamat Datang Kembali!</p>
+                    
                 </div>
                 
                 <!-- Divider -->

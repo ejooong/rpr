@@ -41,11 +41,12 @@
                     <!-- Logo Rumah Pangan Rakyat -->
 <!-- Logo Rumah Pangan Rakyat -->
 <div class="flex justify-center mb-4">
-    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg border border-green-200">
+    <div class="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-lg border border-green-200">
         <img 
-            src="{{ asset('images/logo-rpr.png') }}" 
+            src="{{ asset('images/1.png') }}" 
             alt="Logo Rumah Pangan Rakyat"
-            class="w-16 h-16 object-contain"
+            class="object-contain"
+            style="width: 7rem; height: 7rem;"
         >
     </div>
 </div>

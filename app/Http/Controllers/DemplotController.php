@@ -155,44 +155,53 @@ class DemplotController extends Controller
      * API untuk data GIS - HAPUS FILTER WILAYAH_ID
      */
     public function apiDemplot(Request $request)
-    {
-        $query = Demplot::with(['provinsi', 'kabupaten', 'kecamatan', 'desa', 'komoditas.sektor']);
+{
+    $query = Demplot::with(['provinsi', 'kabupaten', 'kecamatan', 'desa', 'komoditas.sektor']);
 
-        // HAPUS: Filter wilayah_id tidak ada lagi
-        // if ($request->has('wilayah_id')) {
-        //     $query->where('wilayah_id', $request->wilayah_id);
-        // }
-
-        if ($request->has('komoditas_id')) {
-            $query->where('komoditas_id', $request->komoditas_id);
-        }
-
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $demplots = $query->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->get()
-            ->map(function ($demplot) {
-                return [
-                    'id' => $demplot->id,
-                    'nama_lahan' => $demplot->nama_lahan,
-                    'latitude' => $demplot->latitude,
-                    'longitude' => $demplot->longitude,
-                    'luas_lahan' => $demplot->luas_lahan,
-                    'status' => $demplot->status,
-                    'tahun' => $demplot->tahun,
-                    'komoditas' => $demplot->komoditas->nama,
-                    'sektor' => $demplot->komoditas->sektor->nama,
-                    'wilayah' => $demplot->provinsi ? $demplot->provinsi->nama : '-',
-                    'warna' => $demplot->komoditas->warna_chart ?? '#4CAF50',
-                    'popup_content' => view('components.popup-demplot', compact('demplot'))->render()
-                ];
-            });
-
-        return response()->json($demplots);
+    if ($request->has('komoditas_id')) {
+        $query->where('komoditas_id', $request->komoditas_id);
     }
+
+    if ($request->has('status')) {
+        $query->where('status', $request->status);
+    }
+
+    // ambil hanya yang punya koordinat untuk peta
+    $demplots = $query->whereNotNull('latitude')
+        ->whereNotNull('longitude')
+        ->get();
+
+    // mapping dengan kode provinsi/kabupaten kalau tersedia
+    $mapped = $demplots->map(function ($d) {
+        return [
+            'id' => $d->id,
+            'nama_lahan' => $d->nama_lahan,
+            'latitude' => (float) $d->latitude,
+            'longitude' => (float) $d->longitude,
+            'luas_lahan' => $d->luas_lahan,
+            'status' => $d->status,
+            'tahun' => $d->tahun,
+            'komoditas' => $d->komoditas->nama ?? null,
+            'sektor' => $d->komoditas->sektor->nama ?? null,
+            'provinsi' => $d->provinsi->nama ?? null,
+            // gunakan nama kolom kode yang ada di model Provinsi/Kabupaten (sesuaikan jika beda)
+            'provinsi_kode' => $d->provinsi->kode ?? $d->provinsi->kode_prov ?? null,
+            'kabupaten' => $d->kabupaten->nama ?? null,
+            'kabupaten_kode' => $d->kabupaten->kode ?? $d->kabupaten->kode_kab ?? null,
+            'kecamatan' => $d->kecamatan->nama ?? null,
+            'desa' => $d->desa->nama ?? null,
+            'petani' => $d->petani->nama ?? null,
+            'foto_lahan' => $d->foto_lahan ? asset('storage/' . $d->foto_lahan) : null,
+            'popup_content' => view('components.popup-demplot', compact('d'))->render()
+        ];
+    });
+
+    return response()->json([
+        'success' => true,
+        'data' => $mapped,
+        'total' => $mapped->count()
+    ]);
+}
 
     // Di DemplotController.php - method demplotPoktan()
     public function demplotPoktan(Request $request)

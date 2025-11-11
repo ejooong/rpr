@@ -89,8 +89,10 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('komoditas', KomoditasController::class);
         Route::resource('users', UserController::class);
         Route::resource('poktan', PoktanController::class);
-
-
+        Route::resource('petani', PetaniController::class);
+        Route::resource('demplot', DemplotController::class);
+        Route::resource('produksi', ProduksiController::class);
+        
         // Menghapus Data Secara Massal
         Route::get('/bps-data/bulk-delete', [BpsDataController::class, 'showBulkDelete'])->name('bps-data.bulk-delete');
         Route::delete('/bps-data/bulk-delete', [BpsDataController::class, 'bulkDelete'])->name('bps-data.bulk-delete');
@@ -149,6 +151,8 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('gis')->group(function () {
         Route::get('/demplot', [GISController::class, 'index'])->name('gis.demplot');
         Route::get('/api/demplot', [GISController::class, 'apiDemplot'])->name('gis.api.demplot');
+        // NEW: counts per kabupaten untuk sebuah provinsi (server-side choropleth)
+         Route::get('/api/demplot/counts', [GISController::class, 'apiCountsByProvinsi'])->name('gis.api.demplot.counts');
         Route::get('/api/statistics', [GISController::class, 'apiStatistics'])->name('gis.api.statistics');
         Route::get('/api/wilayah', [GISController::class, 'apiWilayah'])->name('gis.api.wilayah');
         Route::post('/save-area', [GISController::class, 'saveDrawnArea'])->name('gis.save.area');

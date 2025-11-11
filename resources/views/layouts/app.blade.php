@@ -144,17 +144,17 @@
             color: white;
         }
         
-        /* Top Bar */
+      /* Top Bar */
 .top-bar {
     background: white;
     border-bottom: 1px solid #e5e7eb;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    z-index: 9999; /* z-index sangat tinggi */
-    position: fixed; /* Ganti dari sticky ke fixed */
+    z-index: 9999;
+    position: fixed;
     top: 0;
     left: var(--sidebar-width);
     right: 0;
-    height: 70px; /* Sesuaikan tinggi */
+    height: 70px;
     transition: left 0.3s ease;
 }
 
@@ -164,41 +164,79 @@
 
 /* Tambahkan padding top ke main content */
 main.p-6 {
-    padding-top: 90px; /* Sesuaikan dengan tinggi top-bar */
-}        
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-            
-            .sidebar.mobile-open {
-                transform: translateX(0);
-            }
-            
-            .main-content {
-                margin-left: 0;
-            }
-            
-            .mobile-overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background-color: rgba(0, 0, 0, 0.5);
-                z-index: 35;
-            }
-            
-            .mobile-overlay.open {
-                display: block;
-            }
-        }
+    padding-top: 90px;
+}
 
-        [x-cloak] {
-            display: none !important;
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    /* PERBAIKAN: Top bar di mobile */
+    .top-bar {
+        position: fixed;
+        left: 0 !important;
+        right: 0;
+        height: 60px;
+    }
+    
+    /* PERBAIKAN: Main content padding di mobile */
+    main.p-6 {
+        padding-top: 70px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    /* PERBAIKAN: Pastikan content tidak tertutup */
+    .main-content {
+        width: 100%;
+        overflow-x: hidden;
+    }
+    
+    .mobile-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 35;
+    }
+    
+    .mobile-overlay.open {
+        display: block;
+    }
+    
+    /* PERBAIKAN: User menu di mobile */
+    .top-bar .flex.items-center.space-x-4 {
+        padding: 0 1rem;
+    }
+    
+    .top-bar .text-xl {
+        font-size: 1.1rem;
+    }
+    
+    /* PERBAIKAN: Hide user details di mobile kecil */
+    @media (max-width: 640px) {
+        .top-bar .text-right.hidden.sm\:block {
+            display: none;
         }
+    }
+}
+
+[x-cloak] {
+    display: none !important;
+}
     </style>
 
     <!-- SweetAlert2 -->
@@ -478,12 +516,11 @@ main.p-6 {
                     <button @click="sidebarCollapsed = !sidebarCollapsed" class="hidden lg:block text-gray-600 hover:text-gray-900">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
-                    
                     @if (isset($header))
-                        <div class="text-xl font-semibold text-gray-900">
-                            {{ $header }}
-                        </div>
-                    @endif
+    <div class="flex-1">
+        {{ $header }}
+    </div>
+@endif
                 </div>
 
                 <!-- Right Section -->

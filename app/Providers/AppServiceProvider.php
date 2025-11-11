@@ -23,4 +23,16 @@ class AppServiceProvider extends ServiceProvider
     {
         Produksi::observe(ProduksiObserver::class);
     }
+    Force HTTPS in production (Railway)
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+            
+            // Set secure session options
+            Config::set('session.secure', true);
+            Config::set('session.same_site', 'lax');
+            
+            // Trust Railway proxy
+            $this->app['request']->server->set('HTTPS', 'on');
+        }
+    
 }

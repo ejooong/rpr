@@ -13,7 +13,7 @@
     use Illuminate\Support\Facades\DB;
     use Illuminate\Support\Facades\Log;
     use Illuminate\Support\Facades\Schema;
-
+use Illuminate\Support\Facades\Storage;
     class GISController extends Controller
     {
         public function index(Request $request)
@@ -279,61 +279,106 @@
         }
 
         private function getPopupContent($demplot)
-        {
-            $namaLahan = $demplot->nama_lahan ?? $demplot->nama ?? 'Unnamed';
-            $foto = $demplot->foto_lahan ? 
-                '<img src="' . asset('storage/' . $demplot->foto_lahan) . '" class="w-full h-32 object-cover rounded mb-2" alt="Foto Lahan">' : 
-                '<div class="w-full h-32 bg-gray-200 rounded mb-2 flex items-center justify-center text-gray-500">Tidak ada foto</div>';
-
-            return '
-            <div class="w-64">
-                ' . $foto . '
-                <h3 class="font-bold text-lg text-blue-800">' . $namaLahan . '</h3>
-                <div class="space-y-1 text-sm">
-                    <div class="flex justify-between">
-                        <span class="font-medium">Komoditas:</span>
-                        <span>' . ($demplot->komoditas->nama ?? '-') . '</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="font-medium">Sektor:</span>
-                        <span>' . ($demplot->komoditas->sektor->nama ?? '-') . '</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="font-medium">Luas:</span>
-                        <span>' . number_format($demplot->luas_lahan, 2) . ' Ha</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="font-medium">Status:</span>
-                        <span class="' . $this->getStatusBadgeClass($demplot->status) . '">' . ucfirst($demplot->status) . '</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="font-medium">Tanggal Tanam:</span>
-                        <span>' . ($demplot->tanggal_tanam ? $demplot->tanggal_tanam->format('d M Y') : '-') . '</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="font-medium">Petani:</span>
-                        <span>' . ($demplot->petani->nama ?? '-') . '</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="font-medium">Poktan:</span>
-                        <span>' . ($demplot->petani->poktan->nama ?? '-') . '</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="font-medium">Lokasi:</span>
-                        <span>' . ($demplot->desa->nama ?? '-') . ', ' . ($demplot->kecamatan->nama ?? '-') . '</span>
-                    </div>
-                </div>
-                ' . ($demplot->keterangan ? '<div class="mt-2 text-xs text-gray-600"><strong>Keterangan:</strong> ' . $demplot->keterangan . '</div>' : '') . '
-                <div class="mt-3 flex space-x-2">
-                    <a href="' . route('demplot.show', $demplot->id) . '" class="flex-1 bg-green-600 text-white text-center py-1 px-2 rounded text-xs hover:bg-blue-700 transition">
-                        Detail
-                    </a>
-                    <button onclick="focusOnMarker(' . $demplot->id . ')" class="flex-1 bg-green-600 text-white py-1 px-2 rounded text-xs hover:bg-green-700 transition">
-                        Focus
-                    </button>
-                </div>
-            </div>';
+{
+    $namaLahan = $demplot->nama_lahan ?? $demplot->nama ?? 'Unnamed';
+    
+    // Handle foto lahan - cek beberapa kemungkinan path
+    $fotoLahan = null;
+    if ($demplot->foto_lahan) {
+        // Cek berbagai kemungkinan path storage
+        if (strpos($demplot->foto_lahan, 'http') === 0) {
+            $fotoLahan = $demplot->foto_lahan; // Sudah full URL
+        } elseif (Storage::exists($demplot->foto_lahan)) {
+            $fotoLahan = asset('storage/' . $demplot->foto_lahan);
+        } elseif (Storage::exists('public/' . $demplot->foto_lahan)) {
+            $fotoLahan = asset('storage/' . $demplot->foto_lahan);
+        } elseif (file_exists(public_path('storage/' . $demplot->foto_lahan))) {
+            $fotoLahan = asset('storage/' . $demplot->foto_lahan);
+        } else {
+            $fotoLahan = $demplot->foto_lahan; // Fallback ke path asli
         }
+    }
+
+    $fotoHtml = $fotoLahan ? 
+        '<img src="' . $fotoLahan . '" class="w-full h-32 object-cover rounded mb-2" alt="Foto Lahan" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\';">' . 
+        '<div class="w-full h-32 bg-gray-200 rounded mb-2 flex items-center justify-center text-gray-500 hidden">Foto tidak tersedia</div>' : 
+        '<div class="w-full h-32 bg-gray-200 rounded mb-2 flex items-center justify-center text-gray-500">Tidak ada foto</div>';
+
+    // Data petani dan poktan
+    $namaPetani = $demplot->petani->nama ?? '-';
+    $namaPoktan = $demplot->petani->poktan->nama ?? '-';
+    $alamatPetani = $demplot->petani->alamat ?? '-';
+
+    return '
+    <div class="w-72 max-w-sm">
+        ' . $fotoHtml . '
+        <h3 class="font-bold text-lg text-blue-800 mb-2">' . htmlspecialchars($namaLahan) . '</h3>
+        <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+                <span class="font-medium text-gray-700">Komoditas:</span>
+                <span class="text-gray-900">' . htmlspecialchars($demplot->komoditas->nama ?? '-') . '</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="font-medium text-gray-700">Sektor:</span>
+                <span class="text-gray-900">' . htmlspecialchars($demplot->komoditas->sektor->nama ?? '-') . '</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="font-medium text-gray-700">Luas Lahan:</span>
+                <span class="text-gray-900">' . number_format($demplot->luas_lahan, 2) . ' Ha</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="font-medium text-gray-700">Status:</span>
+                <span class="' . $this->getStatusBadgeClass($demplot->status) . '">' . ucfirst($demplot->status) . '</span>
+            </div>
+            <div class="border-t pt-2 mt-2">
+                <div class="flex justify-between">
+                    <span class="font-medium text-gray-700">Nama Petani:</span>
+                    <span class="text-gray-900 font-semibold">' . htmlspecialchars($namaPetani) . '</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-medium text-gray-700">Kelompok Tani:</span>
+                    <span class="text-gray-900">' . htmlspecialchars($namaPoktan) . '</span>
+                </div>
+                ' . ($alamatPetani != '-' ? '
+                <div class="mt-1">
+                    <span class="font-medium text-gray-700">Alamat:</span>
+                    <span class="text-gray-900 text-xs block">' . htmlspecialchars($alamatPetani) . '</span>
+                </div>' : '') . '
+            </div>
+            <div class="flex justify-between">
+                <span class="font-medium text-gray-700">Tanggal Tanam:</span>
+                <span class="text-gray-900">' . ($demplot->tanggal_tanam ? $demplot->tanggal_tanam->format('d M Y') : '-') . '</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="font-medium text-gray-700">Lokasi:</span>
+                <span class="text-gray-900 text-right">' . 
+                    htmlspecialchars($demplot->desa->nama ?? '-') . ', ' . 
+                    htmlspecialchars($demplot->kecamatan->nama ?? '-') . '<br>' .
+                    htmlspecialchars($demplot->kabupaten->nama ?? '-') . ', ' . 
+                    htmlspecialchars($demplot->provinsi->nama ?? '-') . 
+                '</span>
+            </div>
+        </div>
+        ' . ($demplot->keterangan ? 
+        '<div class="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+            <strong class="text-yellow-800 text-sm">Keterangan:</strong>
+            <p class="text-yellow-700 text-xs mt-1">' . htmlspecialchars($demplot->keterangan) . '</p>
+        </div>' : '') . '
+        <div class="mt-3 flex space-x-2">
+            <a href="' . route('demplot.show', $demplot->id) . '" 
+               class="flex-1 bg-blue-600 text-white text-center py-2 px-3 rounded text-sm hover:bg-blue-700 transition duration-200 font-medium">
+                📋 Detail
+            </a>
+            <button onclick="focusOnMarker(' . $demplot->id . ')" 
+                    class="flex-1 bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 transition duration-200 font-medium">
+                🔍 Focus
+            </button>
+        </div>
+        <div class="mt-2 text-center">
+            <span class="text-xs text-gray-500">RPR NasDem - Rumah Pangan Rakyat</span>
+        </div>
+    </div>';
+}
 
         private function getStatusBadgeClass($status)
         {

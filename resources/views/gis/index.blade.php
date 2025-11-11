@@ -351,23 +351,115 @@ function createMarker(d) {
     
     const m = L.marker([Number(d.latitude), Number(d.longitude)], { icon: customIcon });
     
-    // Enhanced popup content
+    // Enhanced popup content dengan SEMUA data yang tersedia
     const popupContent = `
-      <div style="min-width: 250px; font-family: system-ui, sans-serif;">
+      <div style="min-width: 280px; font-family: system-ui, sans-serif; max-height: 400px; overflow-y: auto;">
         <div style="background: linear-gradient(135deg, #1E3A8A, #0A8BCC); padding: 12px; border-radius: 8px 8px 0 0; color: white;">
-          <div style="font-weight: bold; font-size: 16px;">📍 Demplot RPR NasDem</div>
+          <div style="font-weight: bold; font-size: 16px;">📍 ${d.nama_lahan || 'Demplot RPR NasDem'}</div>
         </div>
         <div style="padding: 12px;">
-          <div style="margin-bottom: 8px;">
-            <strong>Lokasi:</strong><br>
-            ${d.kabupaten ? d.kabupaten + ', ' : ''}${d.provinsi || 'Lokasi tidak diketahui'}
+          ${d.foto_lahan ? `
+          <div style="margin-bottom: 12px;">
+            <img src="${d.foto_lahan}" 
+                 style="width: 100%; height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb;" 
+                 alt="Foto Lahan"
+                 onerror="this.style.display='none';">
           </div>
-          ${d.nama_demplot ? `<div style="margin-bottom: 8px;"><strong>Nama:</strong> ${d.nama_demplot}</div>` : ''}
-          ${d.komoditas ? `<div style="margin-bottom: 8px;"><strong>Komoditas:</strong> ${d.komoditas}</div>` : ''}
-          ${d.luas_lahan ? `<div style="margin-bottom: 8px;"><strong>Luas Lahan:</strong> ${d.luas_lahan} Ha</div>` : ''}
-          ${d.status ? `<div style="margin-bottom: 8px;"><strong>Status:</strong> ${d.status}</div>` : ''}
-          <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280;">
-            <strong>RPR NasDem</strong> - Rumah Pangan Rakyat
+          ` : ''}
+          
+          <div style="display: grid; gap: 8px; font-size: 13px;">
+            <!-- Info Demplot -->
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; padding-bottom: 6px;">
+              <span style="font-weight: 600; color: #374151;">Komoditas:</span>
+              <span style="color: #1e3a8a; font-weight: 500;">${d.komoditas || '-'}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; padding-bottom: 6px;">
+              <span style="font-weight: 600; color: #374151;">Sektor:</span>
+              <span style="color: #1e3a8a;">${d.sektor || '-'}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; padding-bottom: 6px;">
+              <span style="font-weight: 600; color: #374151;">Luas Lahan:</span>
+              <span style="color: #059669; font-weight: 500;">${d.luas_lahan ? d.luas_lahan + ' Ha' : '-'}</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f0f0f0; padding-bottom: 6px;">
+              <span style="font-weight: 600; color: #374151;">Status:</span>
+              <span style="
+                ${d.status === 'aktif' ? 'background: #dcfce7; color: #166534;' : 
+                  d.status === 'selesai' ? 'background: #dbeafe; color: #1e40af;' : 
+                  d.status === 'rencana' ? 'background: #fef3c7; color: #92400e;' : 
+                  'background: #f3f4f6; color: #374151;'}
+                padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: capitalize;
+              ">${d.status || '-'}</span>
+            </div>
+            
+            <!-- Data Petani -->
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 2px solid #e5e7eb;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-weight: 700; color: #1e3a8a;">Nama Petani:</span>
+                <span style="color: #1e3a8a; font-weight: 600;">${d.petani || '-'}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between;">
+                <span style="font-weight: 600; color: #374151;">Kelompok Tani:</span>
+                <span style="color: #059669; font-weight: 500;">${d.poktan || '-'}</span>
+              </div>
+            </div>
+            
+            <!-- Info Lokasi -->
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-weight: 600; color: #374151;">Desa:</span>
+                <span style="color: #6b7280;">${d.desa || '-'}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-weight: 600; color: #374151;">Kecamatan:</span>
+                <span style="color: #6b7280;">${d.kecamatan || '-'}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <span style="font-weight: 600; color: #374151;">Kabupaten:</span>
+                <span style="color: #6b7280;">${d.kabupaten || '-'}</span>
+              </div>
+              
+              <div style="display: flex; justify-content: space-between;">
+                <span style="font-weight: 600; color: #374151;">Provinsi:</span>
+                <span style="color: #6b7280;">${d.provinsi || '-'}</span>
+              </div>
+            </div>
+            
+            <!-- Info Tambahan -->
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+              <div style="display: flex; justify-content: space-between;">
+                <span style="font-weight: 600; color: #374151;">Tanggal Tanam:</span>
+                <span style="color: #6b7280;">${d.tanggal_tanam || '-'}</span>
+              </div>
+            </div>
+            
+            ${d.keterangan ? `
+            <div style="margin-top: 8px; padding: 8px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px;">
+              <div style="font-weight: 600; color: #92400e; font-size: 12px; margin-bottom: 4px;">Keterangan:</div>
+              <div style="color: #92400e; font-size: 12px; line-height: 1.4;">${d.keterangan}</div>
+            </div>
+            ` : ''}
+          </div>
+          
+          <!-- Action Buttons -->
+          <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <a href="/demplot/${d.id}" 
+               style="flex: 1; background: #1e3a8a; color: white; text-align: center; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; transition: background 0.2s;"
+               onmouseover="this.style.background='#1e40af'" 
+               onmouseout="this.style.background='#1e3a8a'">
+              📋 Detail Lengkap
+            </a>
+          </div>
+          
+          <!-- Footer -->
+          <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e5e7eb; text-align: center;">
+            <span style="font-size: 11px; color: #6b7280;">RPR NasDem - Rumah Pangan Rakyat</span>
           </div>
         </div>
       </div>

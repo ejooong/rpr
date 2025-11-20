@@ -7,14 +7,17 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithEvents;
+use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class RankingKomoditasAdvancedExport implements FromCollection, WithHeadings, WithMapping, WithStyles
+class RankingKomoditasAdvancedExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithEvents
 {
     protected $tahun;
     protected $kabupatenId;
     protected $kecamatanId;
     protected $sektorId;
+    protected $groupedData = [];
 
     public function __construct($tahun, $kabupatenId = null, $kecamatanId = null, $sektorId = null)
     {
@@ -57,23 +60,52 @@ class RankingKomoditasAdvancedExport implements FromCollection, WithHeadings, Wi
 
         $data = $query->get();
 
-        // Format data dan beri ranking per kecamatan
-        $groupedData = collect();
+        // Group data by kecamatan dan urutkan berdasarkan produktivitas
+        $groupedData = [];
         foreach ($data as $item) {
             $kecamatanId = $item->kecamatan_id;
             
-            $groupedData->push([
-                'kecamatan' => $item->kecamatan->nama ?? 'Tidak Diketahui',
-                'kabupaten' => $item->kecamatan->kabupaten->nama ?? 'Tidak Diketahui',
+            if (!isset($groupedData[$kecamatanId])) {
+                $groupedData[$kecamatanId] = [
+                    'kecamatan' => $item->kecamatan->nama ?? 'Tidak Diketahui',
+                    'kabupaten' => $item->kecamatan->kabupaten->nama ?? 'Tidak Diketahui',
+                    'data' => []
+                ];
+            }
+
+            $groupedData[$kecamatanId]['data'][] = [
                 'komoditas' => $item->komoditas->nama ?? 'Tidak Diketahui',
                 'sektor' => $item->komoditas->sektor->nama ?? '-',
                 'luas_lahan' => $item->total_luas_lahan,
                 'produksi' => $item->total_produksi,
                 'produktivitas' => round($item->produktivitas, 2)
-            ]);
+            ];
         }
 
-        return $groupedData->sortByDesc('produktivitas');
+        // Urutkan data per kecamatan berdasarkan produktivitas
+        foreach ($groupedData as &$kecamatanData) {
+            usort($kecamatanData['data'], function($a, $b) {
+                return $b['produktivitas'] <=> $a['produktivitas'];
+            });
+        }
+
+        $this->groupedData = $groupedData;
+
+        // Flatten data untuk collection
+        $flattenedData = collect();
+        foreach ($groupedData as $kecamatanData) {
+            $rank = 1;
+            foreach ($kecamatanData['data'] as $item) {
+                $flattenedData->push([
+                    'kecamatan' => $kecamatanData['kecamatan'],
+                    'kabupaten' => $kecamatanData['kabupaten'],
+                    'rank' => $rank++,
+                    ...$item
+                ]);
+            }
+        }
+
+        return $flattenedData;
     }
 
     public function headings(): array
@@ -81,6 +113,7 @@ class RankingKomoditasAdvancedExport implements FromCollection, WithHeadings, Wi
         return [
             'Kecamatan',
             'Kabupaten',
+            'Rank',
             'Komoditas',
             'Sektor',
             'Luas Lahan (Ha)',
@@ -94,6 +127,7 @@ class RankingKomoditasAdvancedExport implements FromCollection, WithHeadings, Wi
         return [
             $row['kecamatan'],
             $row['kabupaten'],
+            $row['rank'],
             $row['komoditas'],
             $row['sektor'],
             number_format($row['luas_lahan'], 2),
@@ -106,12 +140,24 @@ class RankingKomoditasAdvancedExport implements FromCollection, WithHeadings, Wi
     {
         return [
             1 => ['font' => ['bold' => true]],
-            'A1:G1' => [
+            'A1:H1' => [
                 'fill' => [
                     'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
                     'color' => ['argb' => 'FFE6E6FA']
                 ]
             ],
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function(AfterSheet $event) {
+                $sheet = $event->sheet->getDelegate();
+                
+                // Implementasi styling tambahan untuk ranking komoditas
+                // ... (serupa dengan KomoditasUnggulanAdvancedExport)
+            },
         ];
     }
 }

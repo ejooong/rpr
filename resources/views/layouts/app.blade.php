@@ -440,53 +440,53 @@
                         </a>
                     </div>
                 </div>
-
+                @endif
                 <!-- Data BPS -->
-@if(auth()->user()->isAdmin() || auth()->user()->isDPD())
-<!-- Data BPS -->
-<div class="nav-item">
-    <div class="nav-link cursor-pointer" 
-         :class="{ 'active': activeDropdown === 'bps' }"
-         @click="toggleDropdown('bps')">
-        <div class="nav-icon">
-            <i class="fas fa-chart-bar"></i>
-        </div>
-        <span class="nav-text">Data BPS</span>
-        <div class="ml-auto" :class="{ 'rotate-180': activeDropdown === 'bps' }">
-            <i class="fas fa-chevron-down text-xs"></i>
-        </div>
-    </div>
-    
-    <div class="nav-dropdown" :class="{ 'open': activeDropdown === 'bps' }">
-        <a href="{{ route('bps-data.dashboard') }}" 
-           class="dropdown-item {{ request()->routeIs('bps-data.dashboard') ? 'active' : '' }}"
-           @click="closeSidebar()">
-            Dashboard BPS
-        </a>
-        
-        <!-- TAMBAHKAN MENU LAPORAN ADVANCED DI SINI -->
-        <a href="{{ route('bps-data.advanced-reports') }}" 
-           class="dropdown-item {{ request()->routeIs('bps-data.advanced-reports') ? 'active' : '' }}"
-           @click="closeSidebar()">
-            Laporan Advanced
-        </a>
-        
-        <!-- Hanya admin yang bisa melihat menu CRUD -->
-        @if(auth()->user()->isAdmin())
-        <a href="{{ route('bps-data.index') }}" 
-           class="dropdown-item {{ request()->routeIs('bps-data.index') ? 'active' : '' }}"
-           @click="closeSidebar()">
-            Kelola Data BPS
-        </a>
-        <a href="{{ route('bps-data.import') }}" 
-           class="dropdown-item {{ request()->routeIs('bps-data.import') ? 'active' : '' }}"
-           @click="closeSidebar()">
-            Import Data BPS
-        </a>
-        @endif
-    </div>
-</div>
-@endif
+                @if(auth()->user()->isAdmin())
+                <!-- Data BPS -->
+                <div class="nav-item">
+                    <div class="nav-link cursor-pointer" 
+                         :class="{ 'active': activeDropdown === 'bps' }"
+                         @click="toggleDropdown('bps')">
+                        <div class="nav-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <span class="nav-text">Data BPS</span>
+                        <div class="ml-auto" :class="{ 'rotate-180': activeDropdown === 'bps' }">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="nav-dropdown" :class="{ 'open': activeDropdown === 'bps' }">
+                        <a href="{{ route('bps-data.dashboard') }}" 
+                           class="dropdown-item {{ request()->routeIs('bps-data.dashboard') ? 'active' : '' }}"
+                           @click="closeSidebar()">
+                            Dashboard BPS
+                        </a>
+                        
+                        <!-- TAMBAHKAN MENU LAPORAN ADVANCED DI SINI -->
+                        <a href="{{ route('bps-data.advanced-reports') }}" 
+                           class="dropdown-item {{ request()->routeIs('bps-data.advanced-reports') ? 'active' : '' }}"
+                           @click="closeSidebar()">
+                            Laporan Advanced
+                        </a>
+                        
+                        <!-- Hanya admin yang bisa melihat menu CRUD -->
+                        @if(auth()->user()->isAdmin())
+                        <a href="{{ route('bps-data.index') }}" 
+                           class="dropdown-item {{ request()->routeIs('bps-data.index') ? 'active' : '' }}"
+                           @click="closeSidebar()">
+                            Kelola Data BPS
+                        </a>
+                        <a href="{{ route('bps-data.import') }}" 
+                           class="dropdown-item {{ request()->routeIs('bps-data.import') ? 'active' : '' }}"
+                           @click="closeSidebar()">
+                            Import Data BPS
+                        </a>
+                        @endif
+                    </div>
+                </div>
+                @endif
 
                 <!-- Pengguna -->
                 <a href="{{ route('users.index') }}" 
@@ -497,7 +497,7 @@
                     </div>
                     <span class="nav-text">Pengguna</span>
                 </a>
-                @endif
+            
 
                 @if(auth()->user()->isPetugas())
                 <a href="{{ route('petani.index') }}" 
@@ -526,33 +526,54 @@
                 </a>
                 @endif
 
-                @if(auth()->user()->isDPD())
-                <a href="{{ route('laporan.tren') }}" 
-                   class="nav-link {{ request()->routeIs('laporan.*') ? 'active' : '' }}"
-                   @click="closeSidebar()">
-                    <div class="nav-icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <span class="nav-text">Tren Komoditas</span>
-                </a>
-                <a href="{{ route('bps-data.dashboard') }}" 
-                   class="nav-link {{ request()->routeIs('bps-data.*') ? 'active' : '' }}"
-                   @click="closeSidebar()">
-                    <div class="nav-icon">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                    <span class="nav-text">Data BPS</span>
-                </a>
-                <a href="{{ route('gis.demplot') }}" 
-                   class="nav-link {{ request()->routeIs('gis.*') ? 'active' : '' }}"
-                   @click="closeSidebar()">
-                    <div class="nav-icon">
-                        <i class="fas fa-map-marked-alt"></i>
-                    </div>
-                    <span class="nav-text">Peta GIS</span>
-                </a>
-                @endif
+               @if(auth()->user()->isDPD())
+<a href="{{ route('laporan.tren') }}" 
+   class="nav-link {{ request()->routeIs('laporan.*') ? 'active' : '' }}"
+   @click="closeSidebar()">
+    <div class="nav-icon">
+        <i class="fas fa-chart-line"></i>
+    </div>
+    <span class="nav-text">Tren Komoditas</span>
+</a>
 
+<!-- Data BPS untuk DPD dengan Dropdown -->
+<div class="nav-item">
+    <div class="nav-link cursor-pointer" 
+         :class="{ 'active': activeDropdown === 'bps-dpd' }"
+         @click="toggleDropdown('bps-dpd')">
+        <div class="nav-icon">
+            <i class="fas fa-chart-bar"></i>
+        </div>
+        <span class="nav-text">Data BPS</span>
+        <div class="ml-auto" :class="{ 'rotate-180': activeDropdown === 'bps-dpd' }">
+            <i class="fas fa-chevron-down text-xs"></i>
+        </div>
+    </div>
+    
+    <div class="nav-dropdown" :class="{ 'open': activeDropdown === 'bps-dpd' }">
+        <a href="{{ route('bps-data.dashboard') }}" 
+           class="dropdown-item {{ request()->routeIs('bps-data.dashboard') ? 'active' : '' }}"
+           @click="closeSidebar()">
+            <i class="fas fa-tachometer-alt mr-2 w-4 text-center"></i>Dashboard BPS
+        </a>
+        
+        <a href="{{ route('bps-data.advanced-reports') }}" 
+           class="dropdown-item {{ request()->routeIs('bps-data.advanced-reports') ? 'active' : '' }}"
+           @click="closeSidebar()">
+            <i class="fas fa-chart-line mr-2 w-4 text-center"></i>Laporan Advanced
+        </a>
+    </div>
+</div>
+
+<a href="{{ route('gis.demplot') }}" 
+   class="nav-link {{ request()->routeIs('gis.*') ? 'active' : '' }}"
+   @click="closeSidebar()">
+    <div class="nav-icon">
+        <i class="fas fa-map-marked-alt"></i>
+    </div>
+    <span class="nav-text">Peta GIS</span>
+</a>
+@endif
                 @if(auth()->user()->isPoktan())
                 <a href="{{ route('poktan.anggota') }}" 
                    class="nav-link {{ request()->routeIs('poktan.*') ? 'active' : '' }}"

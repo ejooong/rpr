@@ -27,11 +27,11 @@
                 style="background-image:url('{{ asset('images/logo_rpr_1.jpg') }}')">
                 <!-- Overlay dengan informasi di bagian bawah -->
                 <div class="absolute inset-0 flex items-end p-6">
-                    <div class="text-white text-center bg-black bg-opacity-40 rounded-2xl p-1 w-full">
+                  <!--   <div class="text-white text-center bg-black bg-opacity-40 rounded-2xl p-1 w-full">
                         <h3 class="text-2xl font-bold mb-2">H. Sulaeman L. Hamzah</h3>
                         <p class="text-sm opacity-90 mb-1">Ketua Bidang Pertanian, Peternakan dan Kemandirian Desa</p>
                         <p class="text-sm opacity-90 font-semibold mb-3">DPP Partai NasDem</p>
-                    </div>
+                    </div> -->
                 </div>
             </div>
             
@@ -41,14 +41,14 @@
                     <!-- Logo Rumah Pangan Rakyat -->
                     <!-- Logo Rumah Pangan Rakyat -->
 
-                    <h2 class="text-2xl font-semibold text-gray-800">Rumah Pangan Rakyat</h2>
+                    <!-- <h2 class="text-2xl font-semibold text-gray-800">Rumah Pangan Rakyat</h2> -->
                     
                 </div>
                 
                 <!-- Divider -->
                 <div class="mt-6 flex items-center justify-between">
                     <span class="border-b w-1/5 lg:w-1/4"></span>
-                    <span class="text-xs text-center text-gray-500 uppercase">Silahkan Login Terlebih Dahulu</span>
+                    <span class="text-xs text-center text-gray-500 uppercase">Login</span>
                     <span class="border-b w-1/5 lg:w-1/4"></span>
                 </div>
 

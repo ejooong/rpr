@@ -197,60 +197,6 @@
             </div>
         </div>
 
-        <!-- Rekomendasi Komoditas untuk Demplot - Tingkat Kabupaten/Kota -->
-        <div class="bg-white rounded-lg shadow p-6 mb-8">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-800">Rekomendasi Komoditas untuk Demplot - Tingkat Kabupaten/Kota</h3>
-                    <p class="text-sm text-gray-600 mt-1">
-                        @if($kabupatenId)
-                            Rekomendasi untuk <span class="font-semibold">{{ $kabupatens->where('id', $kabupatenId)->first()->nama ?? 'Tidak Diketahui' }}</span>
-                            @if($provinsiId)
-                                , <span class="font-semibold">{{ $provinsis->where('id', $provinsiId)->first()->nama ?? 'Tidak Diketahui' }}</span>
-                            @endif
-                        @else
-                            <span class="text-yellow-600">Pilih kabupaten/kota terlebih dahulu untuk melihat rekomendasi</span>
-                        @endif
-                        - Tahun {{ $tahun }}
-                    </p>
-                </div>
-                <button id="refreshRekomendasiKabupaten" 
-                        class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md border border-transparent text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out"
-                        {{ !$kabupatenId ? 'disabled' : '' }}>
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
-                    Refresh Kabupaten
-                </button>
-            </div>
-
-            <div id="rekomendasiKabupatenLoading" class="hidden text-center py-8">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-                <p class="mt-2 text-gray-600">Memuat rekomendasi kabupaten...</p>
-            </div>
-
-            <div id="rekomendasiKabupatenContent">
-                @if(!$kabupatenId)
-                <!-- Pesan jika kabupaten belum dipilih -->
-                <div class="text-center py-8 text-yellow-600">
-                    <svg class="w-12 h-12 mx-auto text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                    </svg>
-                    <p class="mt-2">Silakan pilih kabupaten/kota terlebih dahulu untuk melihat rekomendasi</p>
-                    <p class="text-sm mt-1">Pilih provinsi kemudian kabupaten/kota pada filter di atas</p>
-                </div>
-                @else
-                <!-- Default content sebelum di-load -->
-                <div class="text-center py-8 text-gray-500">
-                    <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                    </svg>
-                    <p class="mt-2">Klik "Refresh Kabupaten" untuk melihat rekomendasi tingkat kabupaten/kota</p>
-                </div>
-                @endif
-            </div>
-        </div>
-
         <!-- Rekomendasi Komoditas Per Sektor -->
         <div class="bg-white rounded-lg shadow p-6 mb-8">
             <div class="flex justify-between items-center mb-6">
@@ -560,7 +506,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             initCharts();
             initFilterLogic();
-            initRekomendasiLogic();
             initRekomendasiSektorLogic();
         });
 
@@ -754,7 +699,6 @@
                     kabupatenSelect.innerHTML = '<option value="">Semua Kabupaten</option>';
                     kabupatenSelect.disabled = true;
                     resetKecamatan();
-                    updateKabupatenButton(); // Update status button kabupaten
                     return;
                 }
 
@@ -789,13 +733,10 @@
                             // Trigger change event untuk load kecamatan
                             kabupatenSelect.dispatchEvent(new Event('change'));
                         }
-                        
-                        updateKabupatenButton(); // Update status button kabupaten
                     })
                     .catch(error => {
                         console.error('Error loading kabupaten:', error);
                         kabupatenSelect.innerHTML = '<option value="">Error loading data</option>';
-                        updateKabupatenButton(); // Update status button kabupaten
                     });
             }
 
@@ -853,7 +794,6 @@
             // Event listener untuk kabupaten
             kabupatenSelect.addEventListener('change', function() {
                 loadKecamatan(this.value);
-                updateKabupatenButton(); // Update status button kabupaten
             });
 
             // Jika halaman dimuat dengan provinsi sudah terpilih, load kabupaten
@@ -867,41 +807,19 @@
             if (currentKabupatenId && !currentProvinsiId) {
                 loadKecamatan(currentKabupatenId);
             }
-            
-            // Inisialisasi status button kabupaten
-            updateKabupatenButton();
         }
 
-        function initRekomendasiLogic() {   
-            // Event listener untuk refresh button kabupaten
-            document.getElementById('refreshRekomendasiKabupaten').addEventListener('click', function() {
-                loadRekomendasiKomoditas('kabupaten');
-            });
-
+        // FUNGSI REKOMENDASI PER SEKTOR
+        function initRekomendasiSektorLogic() {
             // Event listener untuk refresh button sektor
             document.getElementById('refreshRekomendasiSektor').addEventListener('click', function() {
                 loadRekomendasiPerSektor();
             });
         }
 
-        function updateKabupatenButton() {
-            const kabupatenId = document.getElementById('kabupaten_id').value;
-            const button = document.getElementById('refreshRekomendasiKabupaten');
-            
-            if (kabupatenId) {
-                button.disabled = false;
-                button.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                button.classList.add('bg-green-600', 'hover:bg-green-700', 'cursor-pointer');
-            } else {
-                button.disabled = true;
-                button.classList.remove('bg-green-600', 'hover:bg-green-700', 'cursor-pointer');
-                button.classList.add('bg-gray-400', 'cursor-not-allowed');
-            }
-        }
-
-        function loadRekomendasiKomoditas(level) {
-            const loadingElement = document.getElementById(`rekomendasi${level.charAt(0).toUpperCase() + level.slice(1)}Loading`);
-            const contentElement = document.getElementById(`rekomendasi${level.charAt(0).toUpperCase() + level.slice(1)}Content`);
+        function loadRekomendasiPerSektor() {
+            const loadingElement = document.getElementById('rekomendasiSektorLoading');
+            const contentElement = document.getElementById('rekomendasiSektorContent');
             
             // Show loading
             loadingElement.classList.remove('hidden');
@@ -911,19 +829,9 @@
             const tahun = document.getElementById('tahun').value;
             const provinsiId = document.getElementById('provinsi_id').value;
             const kabupatenId = document.getElementById('kabupaten_id').value;
-            const sektorId = document.getElementById('sektor_id').value;
             
-            // Build query parameters berdasarkan level
-            const params = new URLSearchParams({
-                tahun: tahun,
-                level: level, // Tambahkan parameter level
-                ...(provinsiId && { provinsi_id: provinsiId }),
-                ...(level === 'kabupaten' && kabupatenId && { kabupaten_id: kabupatenId }),
-                ...(sektorId && { sektor_id: sektorId })
-            });
-            
-            // Untuk level kabupaten, pastikan kabupatenId ada
-            if (level === 'kabupaten' && !kabupatenId) {
+            // Pastikan kabupaten sudah dipilih
+            if (!kabupatenId) {
                 contentElement.innerHTML = `
                     <div class="text-center py-8 text-yellow-600">
                         <svg class="w-12 h-12 mx-auto text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -936,249 +844,42 @@
                 return;
             }
             
-            fetch(`/bps-data/rekomendasi-komoditas?${params}`)
+            // Build query parameters - GUNAKAN URL YANG BENAR
+            const params = new URLSearchParams({
+                tahun: tahun,
+                ...(provinsiId && { provinsi_id: provinsiId }),
+                ...(kabupatenId && { kabupaten_id: kabupatenId })
+            });
+            
+            console.log('Loading rekomendasi per sektor dengan params:', params.toString());
+            
+            // PERBAIKI URL INI: Hapus duplikasi /bps-data/
+            fetch(`/bps-data/rekomendasi-per-sektor?${params}`)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(data => {
-                    renderRekomendasiContent(data, level);
+                    console.log('Data rekomendasi per sektor:', data);
+                    renderRekomendasiSektorContent(data);
                     loadingElement.classList.add('hidden');
                 })
                 .catch(error => {
-                    console.error(`Error loading rekomendasi ${level}:`, error);
+                    console.error('Error loading rekomendasi sektor:', error);
                     contentElement.innerHTML = `
                         <div class="text-center py-8 text-red-600">
                             <svg class="w-12 h-12 mx-auto text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            <p class="mt-2">Gagal memuat rekomendasi: ${error.message}</p>
+                            <p class="mt-2">Gagal memuat rekomendasi per sektor: ${error.message}</p>
+                            <p class="text-sm mt-1">Periksa konsol browser untuk detail error</p>
                         </div>
                     `;
                     loadingElement.classList.add('hidden');
                 });
         }
-
-        // Function untuk render content rekomendasi dengan level
-        function renderRekomendasiContent(data, level) {
-            const contentElement = document.getElementById(`rekomendasi${level.charAt(0).toUpperCase() + level.slice(1)}Content`);
-            const levelText = level === 'provinsi' ? 'Provinsi' : 'Kabupaten/Kota';
-            
-            if (!data.rekomendasi || data.rekomendasi.length === 0) {
-                contentElement.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <svg class="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47-.927-6.04-2.444M3 15a9 9 0 1118 0 9 9 0 01-18 0z"></path>
-                        </svg>
-                        <p class="mt-2">Tidak ada rekomendasi komoditas untuk ${levelText} ini</p>
-                        <p class="text-sm mt-1">Coba ubah filter tahun atau sektor</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            // Dapatkan informasi wilayah
-            const wilayahInfo = getWilayahInfo(data.filter, level);
-            
-            let html = `
-                <div class="mb-4 p-3 ${level === 'provinsi' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'} border rounded-lg">
-                    <div class="flex items-center">
-                        <svg class="w-4 h-4 ${level === 'provinsi' ? 'text-blue-600' : 'text-green-600'} mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <div class="text-sm ${level === 'provinsi' ? 'text-blue-700' : 'text-green-700'}">
-                            <span class="font-medium">Rekomendasi ${levelText}:</span>
-                            <span class="ml-1">${wilayahInfo}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mb-4 text-sm text-gray-600">
-                    Menampilkan ${data.rekomendasi.length} dari ${data.total_komoditas} komoditas berdasarkan potensi tertinggi
-                </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            `;
-            
-            data.rekomendasi.forEach((item, index) => {
-                const badgeColor = getBadgeColor(item.rekomendasi_level);
-                const rankClass = index < 3 ? 'ring-2 ring-yellow-400' : '';
-                
-                html += `
-                    <div class="border border-gray-200 rounded-lg p-4 ${rankClass} hover:shadow-md transition-shadow duration-200">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-center">
-                                <span class="flex items-center justify-center w-8 h-8 rounded-full ${level === 'provinsi' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'} font-bold text-sm mr-3">
-                                    ${index + 1}
-                                </span>
-                                <div>
-                                    <h4 class="text-md font-semibold text-gray-800">${item.nama}</h4>
-                                    <p class="text-sm text-gray-600">${item.sektor}</p>
-                                </div>
-                            </div>
-                            <span class="px-2 py-1 text-xs font-medium rounded-full ${badgeColor}">
-                                ${item.rekomendasi_level}
-                            </span>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div class="space-y-1">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Produktivitas:</span>
-                                    <span class="font-semibold">${item.produktivitas.toFixed(2)} Ton/Ha</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Total Produksi:</span>
-                                    <span class="font-semibold">${item.total_produksi.toLocaleString()} Ton</span>
-                                </div>
-                            </div>
-                            <div class="space-y-1">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Luas Lahan:</span>
-                                    <span class="font-semibold">${item.total_luas_lahan.toLocaleString()} Ha</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Jumlah Wilayah:</span>
-                                    <span class="font-semibold">${item.jumlah_wilayah}</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-3 pt-3 border-t border-gray-200">
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="text-gray-500">Skor Potensi:</span>
-                                <div class="w-24 bg-gray-200 rounded-full h-2">
-                                    <div class="${level === 'provinsi' ? 'bg-blue-600' : 'bg-green-600'} h-2 rounded-full" style="width: ${Math.min(item.skor_potensi * 10, 100)}%"></div>
-                                </div>
-                                <span class="font-medium">${item.skor_potensi.toFixed(2)}</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `</div>`;
-            contentElement.innerHTML = html;
-        }
-
-        // Helper function untuk mendapatkan informasi wilayah
-        function getWilayahInfo(filter, level) {
-            let info = '';
-            
-            // Dapatkan elemen select untuk mendapatkan nama wilayah
-            const provinsiSelect = document.getElementById('provinsi_id');
-            const kabupatenSelect = document.getElementById('kabupaten_id');
-            const tahunSelect = document.getElementById('tahun');
-            
-            if (level === 'kabupaten' && filter.kabupaten_id && kabupatenSelect) {
-                const selectedKabupaten = kabupatenSelect.options[kabupatenSelect.selectedIndex];
-                info += `Kabupaten ${selectedKabupaten.text}`;
-                
-                if (filter.provinsi_id && provinsiSelect) {
-                    const selectedProvinsi = provinsiSelect.options[provinsiSelect.selectedIndex];
-                    info += `, ${selectedProvinsi.text}`;
-                }
-            } 
-            else if (level === 'provinsi') {
-                if (filter.provinsi_id && provinsiSelect) {
-                    const selectedProvinsi = provinsiSelect.options[provinsiSelect.selectedIndex];
-                    info += `Provinsi ${selectedProvinsi.text}`;
-                } else {
-                    info += 'Seluruh Indonesia';
-                }
-            }
-            
-            info += ` - Tahun ${filter.tahun}`;
-            
-            return info;
-        }
-
-        // Helper function untuk warna badge
-        function getBadgeColor(level) {
-            switch(level) {
-                case 'Sangat Direkomendasikan':
-                    return 'bg-green-100 text-green-800';
-                case 'Direkomendasikan':
-                    return 'bg-blue-100 text-blue-800';
-                case 'Cukup Direkomendasikan':
-                    return 'bg-yellow-100 text-yellow-800';
-                default:
-                    return 'bg-gray-100 text-gray-800';
-            }
-        }
-
-        // FUNGSI REKOMENDASI PER SEKTOR
-        function initRekomendasiSektorLogic() {
-            // Event listener untuk refresh button sektor
-            document.getElementById('refreshRekomendasiSektor').addEventListener('click', function() {
-                loadRekomendasiPerSektor();
-            });
-        }
-
-        function loadRekomendasiPerSektor() {
-    const loadingElement = document.getElementById('rekomendasiSektorLoading');
-    const contentElement = document.getElementById('rekomendasiSektorContent');
-    
-    // Show loading
-    loadingElement.classList.remove('hidden');
-    contentElement.innerHTML = '';
-    
-    // Get filter values
-    const tahun = document.getElementById('tahun').value;
-    const provinsiId = document.getElementById('provinsi_id').value;
-    const kabupatenId = document.getElementById('kabupaten_id').value;
-    
-    // Pastikan kabupaten sudah dipilih
-    if (!kabupatenId) {
-        contentElement.innerHTML = `
-            <div class="text-center py-8 text-yellow-600">
-                <svg class="w-12 h-12 mx-auto text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                </svg>
-                <p class="mt-2">Silakan pilih kabupaten/kota terlebih dahulu</p>
-            </div>
-        `;
-        loadingElement.classList.add('hidden');
-        return;
-    }
-    
-    // Build query parameters - GUNAKAN URL YANG BENAR
-    const params = new URLSearchParams({
-        tahun: tahun,
-        ...(provinsiId && { provinsi_id: provinsiId }),
-        ...(kabupatenId && { kabupaten_id: kabupatenId })
-    });
-    
-    console.log('Loading rekomendasi per sektor dengan params:', params.toString());
-    
-    // PERBAIKI URL INI: Hapus duplikasi /bps-data/
-    fetch(`/bps-data/rekomendasi-per-sektor?${params}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Data rekomendasi per sektor:', data);
-            renderRekomendasiSektorContent(data);
-            loadingElement.classList.add('hidden');
-        })
-        .catch(error => {
-            console.error('Error loading rekomendasi sektor:', error);
-            contentElement.innerHTML = `
-                <div class="text-center py-8 text-red-600">
-                    <svg class="w-12 h-12 mx-auto text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <p class="mt-2">Gagal memuat rekomendasi per sektor: ${error.message}</p>
-                    <p class="text-sm mt-1">Periksa konsol browser untuk detail error</p>
-                </div>
-            `;
-            loadingElement.classList.add('hidden');
-        });
-}
 
         function renderRekomendasiSektorContent(data) {
             const contentElement = document.getElementById('rekomendasiSektorContent');
@@ -1279,6 +980,52 @@
             contentElement.innerHTML = html;
         }
 
+        // Helper function untuk mendapatkan informasi wilayah
+        function getWilayahInfo(filter, level) {
+            let info = '';
+            
+            // Dapatkan elemen select untuk mendapatkan nama wilayah
+            const provinsiSelect = document.getElementById('provinsi_id');
+            const kabupatenSelect = document.getElementById('kabupaten_id');
+            const tahunSelect = document.getElementById('tahun');
+            
+            if (level === 'kabupaten' && filter.kabupaten_id && kabupatenSelect) {
+                const selectedKabupaten = kabupatenSelect.options[kabupatenSelect.selectedIndex];
+                info += `Kabupaten ${selectedKabupaten.text}`;
+                
+                if (filter.provinsi_id && provinsiSelect) {
+                    const selectedProvinsi = provinsiSelect.options[provinsiSelect.selectedIndex];
+                    info += `, ${selectedProvinsi.text}`;
+                }
+            } 
+            else if (level === 'provinsi') {
+                if (filter.provinsi_id && provinsiSelect) {
+                    const selectedProvinsi = provinsiSelect.options[provinsiSelect.selectedIndex];
+                    info += `Provinsi ${selectedProvinsi.text}`;
+                } else {
+                    info += 'Seluruh Indonesia';
+                }
+            }
+            
+            info += ` - Tahun ${filter.tahun}`;
+            
+            return info;
+        }
+
+        // Helper function untuk warna badge
+        function getBadgeColor(level) {
+            switch(level) {
+                case 'Sangat Direkomendasikan':
+                    return 'bg-green-100 text-green-800';
+                case 'Direkomendasikan':
+                    return 'bg-blue-100 text-blue-800';
+                case 'Cukup Direkomendasikan':
+                    return 'bg-yellow-100 text-yellow-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+
         // Helper function untuk warna sektor
         function getSektorColor(sektorName) {
             const colors = {
@@ -1291,31 +1038,6 @@
             
             return colors[sektorName] || 'bg-gray-500';
         }
-        function testRekomendasiSektor() {
-    const tahun = document.getElementById('tahun').value;
-    const kabupatenId = document.getElementById('kabupaten_id').value;
-    
-    if (!kabupatenId) {
-        console.log('Pilih kabupaten dulu');
-        return;
-    }
-    
-    console.log('Testing rekomendasi sektor...');
-    console.log('Tahun:', tahun);
-    console.log('Kabupaten ID:', kabupatenId);
-    
-    fetch(`/bps-data/rekomendasi-per-sektor?tahun=${tahun}&kabupaten_id=${kabupatenId}`)
-        .then(response => {
-            console.log('Response status:', response.status);
-            return response.json();
-        })
-        .then(data => {
-            console.log('Response data:', data);
-        })
-        .catch(error => {
-            console.error('Fetch error:', error);
-        });
-}
     </script>
     @endpush
 </x-app-layout>

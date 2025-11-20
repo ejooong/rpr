@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\BpsDataTemplateExport; 
+use App\Exports\KomoditasUnggulanAdvancedExport;
+use App\Exports\RankingKomoditasAdvancedExport;
+use App\Exports\RankingKecamatanAdvancedExport;
+use Illuminate\Support\Str;
 
 class BpsDataController extends Controller
 {
@@ -916,6 +920,390 @@ public function getRekomendasiPerSektor(Request $request)
             'error' => 'Terjadi kesalahan server: ' . $e->getMessage()
         ], 500);
     }
+}
+
+
+
+
+// fitur advancedreports
+
+public function advancedReports()
+{
+    // Cek role user - hanya admin dan DPD yang bisa akses
+    if (!auth()->user()->isAdmin() && !auth()->user()->isDPD()) {
+        abort(403, 'Unauthorized access.');
+    }
+
+    $tahunList = BpsData::select('tahun')
+        ->distinct()
+        ->orderBy('tahun', 'desc')
+        ->pluck('tahun');
+
+    // Ambil semua kabupaten untuk filter
+    $kabupatens = Kabupaten::with('provinsi')
+        ->where('aktif', true)
+        ->orderBy('nama')
+        ->get();
+
+    // Ambil kecamatan berdasarkan kabupaten yang aktif
+    $kecamatans = Kecamatan::with('kabupaten.provinsi')
+        ->where('aktif', true)
+        ->orderBy('nama')
+        ->get();
+
+    $sektors = Sektor::where('aktif', true)->orderBy('nama')->get();
+
+    return view('bps-data.advanced-reports', compact(
+        'tahunList',
+        'kabupatens',
+        'kecamatans',
+        'sektors'
+    ));
+}
+
+public function getKomoditasUnggulanAdvanced(Request $request)
+{
+    // Cek role user - hanya admin dan DPD yang bisa akses
+    if (!auth()->user()->isAdmin() && !auth()->user()->isDPD()) {
+        return response()->json(['error' => 'Unauthorized access.'], 403);
+    }
+
+    $tahun = $request->get('tahun', date('Y') - 1);
+    $kabupatenId = $request->get('kabupaten_id');
+    $kecamatanId = $request->get('kecamatan_id');
+    $sektorId = $request->get('sektor_id');
+
+    $query = BpsData::with(['komoditas.sektor', 'kecamatan.kabupaten.provinsi'])
+        ->where('tahun', $tahun)
+        ->selectRaw('
+            kecamatan_id,
+            komoditas_id,
+            SUM(luas_lahan) as total_luas_lahan,
+            SUM(produksi) as total_produksi,
+            CASE 
+                WHEN SUM(luas_lahan) > 0 THEN SUM(produksi) / SUM(luas_lahan)
+                ELSE 0 
+            END as produktivitas,
+            COUNT(DISTINCT id) as jumlah_data
+        ')
+        ->groupBy('kecamatan_id', 'komoditas_id')
+        ->having('total_produksi', '>', 0);
+
+    // Filter berdasarkan kabupaten
+    if ($kabupatenId) {
+        $query->where('kabupaten_id', $kabupatenId);
+    }
+
+    // Filter berdasarkan kecamatan
+    if ($kecamatanId) {
+        $query->where('kecamatan_id', $kecamatanId);
+    }
+
+    // Filter berdasarkan sektor
+    if ($sektorId) {
+        $query->whereHas('komoditas', function($q) use ($sektorId) {
+            $q->where('sektor_id', $sektorId);
+        });
+    }
+
+    $data = $query->get();
+
+    // Hitung kontribusi per kecamatan
+    $kecamatanTotals = [];
+    foreach ($data as $item) {
+        $kecamatanId = $item->kecamatan_id;
+        if (!isset($kecamatanTotals[$kecamatanId])) {
+            $kecamatanTotals[$kecamatanId] = 0;
+        }
+        $kecamatanTotals[$kecamatanId] += $item->total_produksi;
+    }
+
+    // Format data
+    $result = [];
+    foreach ($data as $item) {
+        $kontribusi = isset($kecamatanTotals[$item->kecamatan_id]) && $kecamatanTotals[$item->kecamatan_id] > 0 
+            ? ($item->total_produksi / $kecamatanTotals[$item->kecamatan_id]) * 100 
+            : 0;
+
+        $result[] = [
+            'kecamatan' => $item->kecamatan->nama ?? 'Tidak Diketahui',
+            'kabupaten' => $item->kecamatan->kabupaten->nama ?? 'Tidak Diketahui',
+            'provinsi' => $item->kecamatan->kabupaten->provinsi->nama ?? 'Tidak Diketahui',
+            'komoditas' => $item->komoditas->nama ?? 'Tidak Diketahui',
+            'sektor' => $item->komoditas->sektor->nama ?? '-',
+            'luas_lahan' => $item->total_luas_lahan,
+            'produksi' => $item->total_produksi,
+            'produktivitas' => round($item->produktivitas, 2),
+            'kontribusi' => round($kontribusi, 2),
+            'jumlah_data' => $item->jumlah_data
+        ];
+    }
+
+    // Urutkan berdasarkan kecamatan dan kontribusi
+    usort($result, function($a, $b) {
+        if ($a['kecamatan'] === $b['kecamatan']) {
+            return $b['kontribusi'] <=> $a['kontribusi'];
+        }
+        return $a['kecamatan'] <=> $b['kecamatan'];
+    });
+
+    return response()->json([
+        'success' => true,
+        'data' => $result,
+        'total' => count($result)
+    ]);
+}
+
+public function getRankingKomoditasAdvanced(Request $request)
+{
+    // Cek role user - hanya admin dan DPD yang bisa akses
+    if (!auth()->user()->isAdmin() && !auth()->user()->isDPD()) {
+        return response()->json(['error' => 'Unauthorized access.'], 403);
+    }
+
+    $tahun = $request->get('tahun', date('Y') - 1);
+    $kabupatenId = $request->get('kabupaten_id');
+    $kecamatanId = $request->get('kecamatan_id');
+    $sektorId = $request->get('sektor_id');
+
+    $query = BpsData::with(['komoditas.sektor', 'kecamatan.kabupaten.provinsi'])
+        ->where('tahun', $tahun)
+        ->selectRaw('
+            kecamatan_id,
+            komoditas_id,
+            SUM(luas_lahan) as total_luas_lahan,
+            SUM(produksi) as total_produksi,
+            CASE 
+                WHEN SUM(luas_lahan) > 0 THEN SUM(produksi) / SUM(luas_lahan)
+                ELSE 0 
+            END as produktivitas
+        ')
+        ->groupBy('kecamatan_id', 'komoditas_id')
+        ->having('total_produksi', '>', 0);
+
+    // Filter berdasarkan kabupaten
+    if ($kabupatenId) {
+        $query->where('kabupaten_id', $kabupatenId);
+    }
+
+    // Filter berdasarkan kecamatan
+    if ($kecamatanId) {
+        $query->where('kecamatan_id', $kecamatanId);
+    }
+
+    // Filter berdasarkan sektor
+    if ($sektorId) {
+        $query->whereHas('komoditas', function($q) use ($sektorId) {
+            $q->where('sektor_id', $sektorId);
+        });
+    }
+
+    $data = $query->get();
+
+    // Format data dan beri ranking per kecamatan
+    $groupedData = [];
+    foreach ($data as $item) {
+        $kecamatanId = $item->kecamatan_id;
+        if (!isset($groupedData[$kecamatanId])) {
+            $groupedData[$kecamatanId] = [
+                'kecamatan' => $item->kecamatan->nama ?? 'Tidak Diketahui',
+                'kabupaten' => $item->kecamatan->kabupaten->nama ?? 'Tidak Diketahui',
+                'data' => []
+            ];
+        }
+
+        $groupedData[$kecamatanId]['data'][] = [
+            'komoditas' => $item->komoditas->nama ?? 'Tidak Diketahui',
+            'sektor' => $item->komoditas->sektor->nama ?? '-',
+            'luas_lahan' => $item->total_luas_lahan,
+            'produksi' => $item->total_produksi,
+            'produktivitas' => round($item->produktivitas, 2)
+        ];
+    }
+
+    // Urutkan data per kecamatan berdasarkan produktivitas
+    foreach ($groupedData as &$kecamatanData) {
+        usort($kecamatanData['data'], function($a, $b) {
+            return $b['produktivitas'] <=> $a['produktivitas'];
+        });
+    }
+
+    return response()->json([
+        'success' => true,
+        'data' => array_values($groupedData),
+        'total' => count($data)
+    ]);
+}
+
+public function getRankingKecamatanAdvanced(Request $request)
+{
+    // Cek role user - hanya admin dan DPD yang bisa akses
+    if (!auth()->user()->isAdmin() && !auth()->user()->isDPD()) {
+        return response()->json(['error' => 'Unauthorized access.'], 403);
+    }
+
+    $tahun = $request->get('tahun', date('Y') - 1);
+    $kabupatenId = $request->get('kabupaten_id');
+    $sektorId = $request->get('sektor_id');
+
+    $query = BpsData::with(['kecamatan.kabupaten.provinsi', 'komoditas.sektor'])
+        ->where('tahun', $tahun)
+        ->selectRaw('
+            kecamatan_id,
+            COUNT(DISTINCT komoditas_id) as jumlah_komoditas,
+            SUM(luas_lahan) as total_luas_lahan,
+            SUM(produksi) as total_produksi,
+            CASE 
+                WHEN SUM(luas_lahan) > 0 THEN SUM(produksi) / SUM(luas_lahan)
+                ELSE 0 
+            END as produktivitas
+        ')
+        ->groupBy('kecamatan_id')
+        ->having('total_produksi', '>', 0);
+
+    // Filter berdasarkan kabupaten
+    if ($kabupatenId) {
+        $query->where('kabupaten_id', $kabupatenId);
+    }
+
+    // Filter berdasarkan sektor
+    if ($sektorId) {
+        $query->whereHas('komoditas', function($q) use ($sektorId) {
+            $q->where('sektor_id', $sektorId);
+        });
+    }
+
+    $data = $query->get();
+
+    $result = [];
+    foreach ($data as $item) {
+        $result[] = [
+            'kecamatan' => $item->kecamatan->nama ?? 'Tidak Diketahui',
+            'kabupaten' => $item->kecamatan->kabupaten->nama ?? 'Tidak Diketahui',
+            'provinsi' => $item->kecamatan->kabupaten->provinsi->nama ?? 'Tidak Diketahui',
+            'jumlah_komoditas' => $item->jumlah_komoditas,
+            'luas_lahan' => $item->total_luas_lahan,
+            'produksi' => $item->total_produksi,
+            'produktivitas' => round($item->produktivitas, 2)
+        ];
+    }
+
+    // Urutkan berdasarkan produktivitas
+    usort($result, function($a, $b) {
+        return $b['produktivitas'] <=> $a['produktivitas'];
+    });
+
+    return response()->json([
+        'success' => true,
+        'data' => $result,
+        'total' => count($result)
+    ]);
+}
+
+
+public function exportKomoditasUnggulanAdvanced(Request $request)
+{
+    // Cek role user - hanya admin dan DPD yang bisa akses
+    if (!auth()->user()->isAdmin() && !auth()->user()->isDPD()) {
+        abort(403, 'Unauthorized access.');
+    }
+
+    $tahun = $request->get('tahun', date('Y') - 1);
+    $kabupatenId = $request->get('kabupaten_id');
+    $kecamatanId = $request->get('kecamatan_id');
+    $sektorId = $request->get('sektor_id');
+
+    $filename = 'komoditas_unggulan_advanced_' . $tahun;
+    
+    if ($kabupatenId) {
+        $kabupaten = Kabupaten::find($kabupatenId);
+        $filename .= '_' . Str::slug($kabupaten->nama);
+    }
+    if ($kecamatanId) {
+        $kecamatan = Kecamatan::find($kecamatanId);
+        $filename .= '_' . Str::slug($kecamatan->nama);
+    }
+    if ($sektorId) {
+        $sektor = Sektor::find($sektorId);
+        $filename .= '_' . Str::slug($sektor->nama);
+    }
+
+    $filename .= '.xlsx';
+
+    return Excel::download(new KomoditasUnggulanAdvancedExport(
+        $tahun, 
+        $kabupatenId, 
+        $kecamatanId, 
+        $sektorId
+    ), $filename);
+}
+
+public function exportRankingKomoditasAdvanced(Request $request)
+{
+    // Cek role user - hanya admin dan DPD yang bisa akses
+    if (!auth()->user()->isAdmin() && !auth()->user()->isDPD()) {
+        abort(403, 'Unauthorized access.');
+    }
+
+    $tahun = $request->get('tahun', date('Y') - 1);
+    $kabupatenId = $request->get('kabupaten_id');
+    $kecamatanId = $request->get('kecamatan_id');
+    $sektorId = $request->get('sektor_id');
+
+    $filename = 'ranking_komoditas_advanced_' . $tahun;
+    
+    if ($kabupatenId) {
+        $kabupaten = Kabupaten::find($kabupatenId);
+        $filename .= '_' . Str::slug($kabupaten->nama);
+    }
+    if ($kecamatanId) {
+        $kecamatan = Kecamatan::find($kecamatanId);
+        $filename .= '_' . Str::slug($kecamatan->nama);
+    }
+    if ($sektorId) {
+        $sektor = Sektor::find($sektorId);
+        $filename .= '_' . Str::slug($sektor->nama);
+    }
+
+    $filename .= '.xlsx';
+
+    return Excel::download(new RankingKomoditasAdvancedExport(
+        $tahun, 
+        $kabupatenId, 
+        $kecamatanId, 
+        $sektorId
+    ), $filename);
+}
+
+public function exportRankingKecamatanAdvanced(Request $request)
+{
+    // Cek role user - hanya admin dan DPD yang bisa akses
+    if (!auth()->user()->isAdmin() && !auth()->user()->isDPD()) {
+        abort(403, 'Unauthorized access.');
+    }
+
+    $tahun = $request->get('tahun', date('Y') - 1);
+    $kabupatenId = $request->get('kabupaten_id');
+    $sektorId = $request->get('sektor_id');
+
+    $filename = 'ranking_kecamatan_advanced_' . $tahun;
+    
+    if ($kabupatenId) {
+        $kabupaten = Kabupaten::find($kabupatenId);
+        $filename .= '_' . Str::slug($kabupaten->nama);
+    }
+    if ($sektorId) {
+        $sektor = Sektor::find($sektorId);
+        $filename .= '_' . Str::slug($sektor->nama);
+    }
+
+    $filename .= '.xlsx';
+
+    return Excel::download(new RankingKecamatanAdvancedExport(
+        $tahun, 
+        $kabupatenId, 
+        $sektorId
+    ), $filename);
 }
 
 }

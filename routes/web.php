@@ -65,7 +65,16 @@ Route::middleware(['auth'])->group(function () {
  
       // TAMBAHKAN INI: Route yang benar
     Route::get('/rekomendasi-per-sektor', [BpsDataController::class, 'getRekomendasiPerSektor'])->name('bps-data.rekomendasi-per-sektor');
-    
+     
+
+    // ========== ROUTE UNTUK LAPORAN ADVANCED (HANYA ADMIN & DPD) ==========
+    Route::get('/advanced-reports', [BpsDataController::class, 'advancedReports'])->name('bps-data.advanced-reports');
+    Route::get('/api/advanced-reports/komoditas-unggulan', [BpsDataController::class, 'getKomoditasUnggulanAdvanced']);
+    Route::get('/api/advanced-reports/ranking-komoditas', [BpsDataController::class, 'getRankingKomoditasAdvanced']);
+    Route::get('/api/advanced-reports/ranking-kecamatan', [BpsDataController::class, 'getRankingKecamatanAdvanced']);
+    Route::get('/export/komoditas-unggulan-advanced', [BpsDataController::class, 'exportKomoditasUnggulanAdvanced'])->name('bps-data.export.komoditas-unggulan-advanced');
+    Route::get('/export/ranking-komoditas-advanced', [BpsDataController::class, 'exportRankingKomoditasAdvanced'])->name('bps-data.export.ranking-komoditas-advanced');
+    Route::get('/export/ranking-kecamatan-advanced', [BpsDataController::class, 'exportRankingKecamatanAdvanced'])->name('bps-data.export.ranking-kecamatan-advanced');
 
 
     // Routes khusus admin (CRUD + Import)

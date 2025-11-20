@@ -50,15 +50,24 @@ Route::middleware(['auth'])->group(function () {
     // Dashboard untuk DPD dan Admin (view only)
     Route::get('/dashboard', [BpsDataController::class, 'dashboard'])->name('bps-data.dashboard');
     
+
+
     // API untuk chart data
     Route::get('/api/chart-data', [BpsDataController::class, 'apiChartData'])->name('bps-data.api.chart');
     
         // FITUR BARU: Ranking per Kecamatan
     Route::get('/ranking-kecamatan', [BpsDataController::class, 'rankingKecamatan'])->name('bps-data.ranking-kecamatan');
     
-        // FITUR BARU: Rekomendasi Komoditas untuk Demplot
-        Route::get('/rekomendasi-komoditas', [BpsDataController::class, 'getRekomendasiKomoditas'])->name('bps-data.rekomendasi-komoditas');
     
+
+        // FITUR BARU: Rekomendasi Komoditas untuk Demplot
+    Route::get('/rekomendasi-komoditas', [BpsDataController::class, 'getRekomendasiKomoditas'])->name('bps-data.rekomendasi-komoditas');
+ 
+      // TAMBAHKAN INI: Route yang benar
+    Route::get('/rekomendasi-per-sektor', [BpsDataController::class, 'getRekomendasiPerSektor'])->name('bps-data.rekomendasi-per-sektor');
+    
+
+
     // Routes khusus admin (CRUD + Import)
     Route::get('/', [BpsDataController::class, 'index'])->name('bps-data.index');
     Route::get('/create', [BpsDataController::class, 'create'])->name('bps-data.create');

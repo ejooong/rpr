@@ -502,18 +502,18 @@ function createMarker(d) {
         const group = L.featureGroup(markers);
         map.fitBounds(group.getBounds(), { padding: [40,40] });
         
-        Swal.fire({
-          icon: 'success',
-          title: `Ditemukan ${markers.length} demplot`,
-          text: `Di ${kabName}${provName ? `, ${provName}` : ''}`,
-          toast: true,
-          position: 'top-end',
-          showConfirmButton: false,
-          timer: 3000,
-          timerProgressBar: true,
-          background: '#f0f9ff',
-          iconColor: '#2A7BE4'
-        });
+        // Swal.fire({
+        //   icon: 'success',
+        //   title: `Ditemukan ${markers.length} demplot`,
+        //   text: `Di ${kabName}${provName ? `, ${provName}` : ''}`,
+        //   toast: true,
+        //   position: 'top-end',
+        //   showConfirmButton: false,
+        //   timer: 3000,
+        //   timerProgressBar: true,
+        //   background: '#f0f9ff',
+        //   iconColor: '#2A7BE4'
+        // });
         
       } else {
         Swal.fire({
@@ -734,18 +734,18 @@ function showMarkersForProvince(provName, provCode = null) {
       });
     }
     
-    Swal.fire({
-      icon: 'success',
-      title: `Menampilkan ${markers.length} demplot`,
-      text: `Di provinsi ${provName}`,
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: true,
-      background: '#f0f9ff',
-      iconColor: '#2A7BE4'
-    });
+    // Swal.fire({
+    //   icon: 'success',
+    //   title: `Menampilkan ${markers.length} demplot`,
+    //   text: `Di provinsi ${provName}`,
+    //   toast: true,
+    //   position: 'top-end',
+    //   showConfirmButton: false,
+    //   timer: 3000,
+    //   timerProgressBar: true,
+    //   background: '#f0f9ff',
+    //   iconColor: '#2A7BE4'
+    // });
         
         updateMapInfo(`${markers.length} demplot di ${provName}`);
       } else {

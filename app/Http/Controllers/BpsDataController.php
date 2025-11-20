@@ -825,4 +825,97 @@ private function getRekomendasiLevel($produktivitas, $jumlahWilayah, $level)
         return 'Perlu Evaluasi';
     }
 }
+
+
+
+// Method untuk rekomendasi komoditas per sektor
+public function getRekomendasiPerSektor(Request $request)
+{
+    try {
+        $tahun = $request->get('tahun', date('Y') - 1);
+        $provinsiId = $request->get('provinsi_id');
+        $kabupatenId = $request->get('kabupaten_id');
+        
+        if (!$kabupatenId) {
+            return response()->json([
+                'error' => 'Kabupaten ID diperlukan untuk rekomendasi per sektor'
+            ], 400);
+        }
+        
+        // Base query
+        $query = BpsData::with(['komoditas', 'komoditas.sektor', 'provinsi', 'kabupaten'])
+            ->where('tahun', $tahun)
+            ->where('kabupaten_id', $kabupatenId);
+            
+        if ($provinsiId) {
+            $query->where('provinsi_id', $provinsiId);
+        }
+        
+        $data = $query->get();
+        
+        // Jika tidak ada data
+        if ($data->isEmpty()) {
+            return response()->json([
+                'rekomendasi_per_sektor' => [],
+                'filter' => [
+                    'tahun' => $tahun,
+                    'provinsi_id' => $provinsiId,
+                    'kabupaten_id' => $kabupatenId
+                ],
+                'message' => 'Tidak ada data untuk filter yang dipilih'
+            ]);
+        }
+        
+        // Group by sektor terlebih dahulu, kemudian oleh komoditas
+        $rekomendasiPerSektor = $data->groupBy(function($item) {
+            return $item->komoditas->sektor->nama ?? 'Lainnya';
+        })->map(function ($sektorItems, $namaSektor) {
+            // Untuk setiap sektor, hitung rekomendasi komoditas
+            $komoditasData = $sektorItems->groupBy('komoditas_id')->map(function ($items, $komoditasId) {
+                $firstItem = $items->first();
+                $totalProduksi = $items->sum('produksi');
+                $totalLuasLahan = $items->sum('luas_lahan');
+                $produktivitas = $totalLuasLahan > 0 ? $totalProduksi / $totalLuasLahan : 0;
+                
+                $jumlahWilayah = $items->groupBy('kecamatan_id')->count();
+                $skorPotensi = ($produktivitas * 0.6) + ($jumlahWilayah * 0.4);
+                
+                return [
+                    'komoditas_id' => $komoditasId,
+                    'nama' => $firstItem->komoditas->nama,
+                    'sektor' => $firstItem->komoditas->sektor->nama ?? '-',
+                    'total_produksi' => $totalProduksi,
+                    'total_luas_lahan' => $totalLuasLahan,
+                    'produktivitas' => $produktivitas,
+                    'jumlah_wilayah' => $jumlahWilayah,
+                    'skor_potensi' => $skorPotensi,
+                    'rekomendasi_level' => $this->getRekomendasiLevel($produktivitas, $jumlahWilayah, 'kabupaten')
+                ];
+            })->sortByDesc('skor_potensi')->take(5)->values(); // Ambil 3 teratas per sektor
+            
+            return $komoditasData;
+        })->filter(function($sektorData) {
+            // Hanya sektor yang memiliki data
+            return $sektorData->isNotEmpty();
+        });
+        
+        return response()->json([
+            'rekomendasi_per_sektor' => $rekomendasiPerSektor,
+            'filter' => [
+                'tahun' => $tahun,
+                'provinsi_id' => $provinsiId,
+                'kabupaten_id' => $kabupatenId
+            ],
+            'total_data' => $data->count(),
+            'total_sektor' => $rekomendasiPerSektor->count()
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error in getRekomendasiPerSektor: ' . $e->getMessage());
+        return response()->json([
+            'error' => 'Terjadi kesalahan server: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
 }

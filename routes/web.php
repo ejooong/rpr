@@ -49,7 +49,11 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('bps-data')->group(function () {
     // Dashboard untuk DPD dan Admin (view only)
     Route::get('/dashboard', [BpsDataController::class, 'dashboard'])->name('bps-data.dashboard');
-    
+     // Halaman trends
+        Route::get('/trends', [BpsDataController::class, 'trends'])->name('bps-data.trends');
+        
+        // API untuk chart data
+        Route::get('/api/chart-data', [BpsDataController::class, 'apiChartData'])->name('bps-data.api.chart');
 
 
     // API untuk chart data
@@ -75,7 +79,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/export/komoditas-unggulan-advanced', [BpsDataController::class, 'exportKomoditasUnggulanAdvanced'])->name('bps-data.export.komoditas-unggulan-advanced');
     Route::get('/export/ranking-komoditas-advanced', [BpsDataController::class, 'exportRankingKomoditasAdvanced'])->name('bps-data.export.ranking-komoditas-advanced');
     Route::get('/export/ranking-kecamatan-advanced', [BpsDataController::class, 'exportRankingKecamatanAdvanced'])->name('bps-data.export.ranking-kecamatan-advanced');
-
 
     // Routes khusus admin (CRUD + Import)
     Route::get('/', [BpsDataController::class, 'index'])->name('bps-data.index');
@@ -238,7 +241,8 @@ Route::prefix('api')->group(function () {
     Route::get('/bps-data/provinsi', [BpsDataController::class, 'apiByProvinsi'])->name('api.bps-data.provinsi');
     Route::get('/bps-data/tahun', [BpsDataController::class, 'apiTahunList'])->name('api.bps-data.tahun');
     
-
+ // ========== TAMBAHKAN ROUTE INI YANG HILANG ==========
+    Route::get('/bps-data/trend-data', [BpsDataController::class, 'apiTrendData'])->name('api.bps-data.trend-data');
 
 
     // ========== TAMBAHKAN ROUTE INI UNTUK FORM CREATE BPS DATA ==========

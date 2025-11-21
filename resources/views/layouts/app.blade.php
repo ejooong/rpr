@@ -441,52 +441,56 @@
                     </div>
                 </div>
                 @endif
+
                 <!-- Data BPS -->
-                @if(auth()->user()->isAdmin())
-                <!-- Data BPS -->
-                <div class="nav-item">
-                    <div class="nav-link cursor-pointer" 
-                         :class="{ 'active': activeDropdown === 'bps' }"
-                         @click="toggleDropdown('bps')">
-                        <div class="nav-icon">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <span class="nav-text">Data BPS</span>
-                        <div class="ml-auto" :class="{ 'rotate-180': activeDropdown === 'bps' }">
-                            <i class="fas fa-chevron-down text-xs"></i>
-                        </div>
-                    </div>
-                    
-                    <div class="nav-dropdown" :class="{ 'open': activeDropdown === 'bps' }">
-                        <a href="{{ route('bps-data.dashboard') }}" 
-                           class="dropdown-item {{ request()->routeIs('bps-data.dashboard') ? 'active' : '' }}"
-                           @click="closeSidebar()">
-                            Dashboard BPS
-                        </a>
-                        
-                        <!-- TAMBAHKAN MENU LAPORAN ADVANCED DI SINI -->
-                        <a href="{{ route('bps-data.advanced-reports') }}" 
-                           class="dropdown-item {{ request()->routeIs('bps-data.advanced-reports') ? 'active' : '' }}"
-                           @click="closeSidebar()">
-                            Laporan Advanced
-                        </a>
-                        
-                        <!-- Hanya admin yang bisa melihat menu CRUD -->
-                        @if(auth()->user()->isAdmin())
-                        <a href="{{ route('bps-data.index') }}" 
-                           class="dropdown-item {{ request()->routeIs('bps-data.index') ? 'active' : '' }}"
-                           @click="closeSidebar()">
-                            Kelola Data BPS
-                        </a>
-                        <a href="{{ route('bps-data.import') }}" 
-                           class="dropdown-item {{ request()->routeIs('bps-data.import') ? 'active' : '' }}"
-                           @click="closeSidebar()">
-                            Import Data BPS
-                        </a>
-                        @endif
-                    </div>
-                </div>
-                @endif
+@if(auth()->user()->isAdmin())
+<div class="nav-item">
+    <div class="nav-link cursor-pointer" 
+         :class="{ 'active': activeDropdown === 'bps' }"
+         @click="toggleDropdown('bps')">
+        <div class="nav-icon">
+            <i class="fas fa-chart-bar"></i>
+        </div>
+        <span class="nav-text">Data BPS</span>
+        <div class="ml-auto" :class="{ 'rotate-180': activeDropdown === 'bps' }">
+            <i class="fas fa-chevron-down text-xs"></i>
+        </div>
+    </div>
+    
+    <div class="nav-dropdown" :class="{ 'open': activeDropdown === 'bps' }">
+        <a href="{{ route('bps-data.dashboard') }}" 
+           class="dropdown-item {{ request()->routeIs('bps-data.dashboard') ? 'active' : '' }}"
+           @click="closeSidebar()">
+            <i class="fas fa-tachometer-alt mr-2 w-4 text-center"></i>Dashboard BPS
+        </a>
+        
+        <!-- TAMBAHKAN MENU TREN DI SINI -->
+        <a href="{{ route('bps-data.trends') }}" 
+           class="dropdown-item {{ request()->routeIs('bps-data.trends') ? 'active' : '' }}"
+           @click="closeSidebar()">
+            <i class="fas fa-chart-line mr-2 w-4 text-center"></i>Tren Komoditas
+        </a>
+        
+        <a href="{{ route('bps-data.advanced-reports') }}" 
+           class="dropdown-item {{ request()->routeIs('bps-data.advanced-reports') ? 'active' : '' }}"
+           @click="closeSidebar()">
+            <i class="fas fa-chart-line mr-2 w-4 text-center"></i>Laporan Advanced
+        </a>
+        
+        <!-- Hanya admin yang bisa melihat menu CRUD -->
+        <a href="{{ route('bps-data.index') }}" 
+           class="dropdown-item {{ request()->routeIs('bps-data.index') ? 'active' : '' }}"
+           @click="closeSidebar()">
+            <i class="fas fa-database mr-2 w-4 text-center"></i>Kelola Data BPS
+        </a>
+        <a href="{{ route('bps-data.import') }}" 
+           class="dropdown-item {{ request()->routeIs('bps-data.import') ? 'active' : '' }}"
+           @click="closeSidebar()">
+            <i class="fas fa-file-import mr-2 w-4 text-center"></i>Import Data BPS
+        </a>
+    </div>
+</div>
+@endif
 
                 <!-- Pengguna -->
                 <a href="{{ route('users.index') }}" 
@@ -525,10 +529,11 @@
                     <span class="nav-text">Produksi</span>
                 </a>
                 @endif
-
-               @if(auth()->user()->isDPD())
-<a href="{{ route('laporan.tren') }}" 
-   class="nav-link {{ request()->routeIs('laporan.*') ? 'active' : '' }}"
+                
+@if(auth()->user()->isDPD())
+<!-- Tren Komoditas -->
+<a href="{{ route('bps-data.trends') }}" 
+   class="nav-link {{ request()->routeIs('bps-data.trends') ? 'active' : '' }}"
    @click="closeSidebar()">
     <div class="nav-icon">
         <i class="fas fa-chart-line"></i>
@@ -561,6 +566,13 @@
            class="dropdown-item {{ request()->routeIs('bps-data.advanced-reports') ? 'active' : '' }}"
            @click="closeSidebar()">
             <i class="fas fa-chart-line mr-2 w-4 text-center"></i>Laporan Advanced
+        </a>
+
+        <!-- TAMBAHKAN MENU TREN DI DALAM DROPDOWN JUGA -->
+        <a href="{{ route('bps-data.trends') }}" 
+           class="dropdown-item {{ request()->routeIs('bps-data.trends') ? 'active' : '' }}"
+           @click="closeSidebar()">
+            <i class="fas fa-chart-line mr-2 w-4 text-center"></i>Tren Komoditas
         </a>
     </div>
 </div>

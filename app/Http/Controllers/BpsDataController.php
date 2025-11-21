@@ -1306,4 +1306,223 @@ public function exportRankingKecamatanAdvanced(Request $request)
     ), $filename);
 }
 
+public function trends(Request $request)
+{
+    // Cek role user
+    if (!auth()->user()->isAdmin() && !auth()->user()->isDPD()) {
+        abort(403, 'Unauthorized action.');
+    }
+
+    // Get data untuk dropdown filter
+    $provinsis = Provinsi::where('aktif', true)->get();
+    
+    // Untuk kabupaten: jika ada provinsiId, ambil kabupaten dari provinsi tersebut
+    $kabupatens = collect();
+    if ($request->has('provinsi_id') && $request->provinsi_id) {
+        $kabupatens = Kabupaten::where('aktif', true)
+            ->where('provinsi_id', $request->provinsi_id)
+            ->get();
+    }
+    
+    // Untuk kecamatan: jika ada kabupatenId, ambil kecamatan dari kabupaten tersebut
+    $kecamatans = collect();
+    if ($request->has('kabupaten_id') && $request->kabupaten_id) {
+        $kecamatans = Kecamatan::where('aktif', true)
+            ->where('kabupaten_id', $request->kabupaten_id)
+            ->get();
+    }
+    
+    $sektors = Sektor::where('aktif', true)->get();
+    $komoditasList = Komoditas::where('aktif', true)->get();
+    
+    // Get tahun range yang tersedia
+    $tahunRange = BpsData::select('tahun')
+        ->distinct()
+        ->orderBy('tahun')
+        ->pluck('tahun');
+    
+    $tahunAwal = $tahunRange->first() ?? date('Y') - 5;
+    $tahunAkhir = $tahunRange->last() ?? date('Y') - 1;
+
+    return view('bps-data.trends', compact(
+        'provinsis', 
+        'kabupatens', 
+        'kecamatans', 
+        'sektors',
+        'komoditasList',
+        'tahunAwal',
+        'tahunAkhir'
+    ));
+}
+
+// API untuk data trend
+public function apiTrendData(Request $request)
+{
+    try {
+        $tahunAwal = $request->get('tahun_awal', date('Y') - 5);
+        $tahunAkhir = $request->get('tahun_akhir', date('Y') - 1);
+        $provinsiId = $request->get('provinsi_id');
+        $kabupatenId = $request->get('kabupaten_id');
+        $kecamatanId = $request->get('kecamatan_id');
+        $sektorId = $request->get('sektor_id');
+        $komoditasId = $request->get('komoditas_id');
+        $metric = $request->get('metric', 'produksi'); // produksi, luas_lahan, produktivitas
+
+        // Validasi tahun
+        if ($tahunAwal > $tahunAkhir) {
+            return response()->json(['error' => 'Tahun awal tidak boleh lebih besar dari tahun akhir'], 400);
+        }
+
+        // Base query untuk trend data
+        $query = BpsData::with(['komoditas', 'komoditas.sektor', 'provinsi', 'kabupaten', 'kecamatan'])
+            ->whereBetween('tahun', [$tahunAwal, $tahunAkhir]);
+
+        // Apply filters
+        if ($provinsiId) {
+            $query->where('provinsi_id', $provinsiId);
+        }
+        
+        if ($kabupatenId) {
+            $query->where('kabupaten_id', $kabupatenId);
+        }
+        
+        if ($kecamatanId) {
+            $query->where('kecamatan_id', $kecamatanId);
+        }
+        
+        if ($sektorId) {
+            $query->where('sektor_id', $sektorId);
+        }
+        
+        if ($komoditasId) {
+            $query->where('komoditas_id', $komoditasId);
+        }
+
+        // Get data grouped by tahun
+        $data = $query->select(
+                'tahun',
+                DB::raw('SUM(produksi) as total_produksi'),
+                DB::raw('SUM(luas_lahan) as total_luas_lahan'),
+                DB::raw('COUNT(DISTINCT komoditas_id) as jumlah_komoditas'),
+                DB::raw('COUNT(DISTINCT kecamatan_id) as jumlah_kecamatan')
+            )
+            ->groupBy('tahun')
+            ->orderBy('tahun')
+            ->get();
+
+        // Hitung produktivitas dan pertumbuhan
+        $trendData = [];
+        $previousValue = null;
+
+        foreach ($data as $item) {
+            $produktivitas = $item->total_luas_lahan > 0 ? $item->total_produksi / $item->total_luas_lahan : 0;
+            
+            // Tentukan nilai berdasarkan metric yang dipilih
+            $currentValue = match($metric) {
+                'produksi' => $item->total_produksi,
+                'luas_lahan' => $item->total_luas_lahan,
+                'produktivitas' => $produktivitas,
+                'jumlah_komoditas' => $item->jumlah_komoditas,
+                'jumlah_kecamatan' => $item->jumlah_kecamatan,
+                default => $item->total_produksi
+            };
+
+            // Hitung pertumbuhan
+            $pertumbuhan = null;
+            if ($previousValue !== null && $previousValue > 0) {
+                $pertumbuhan = (($currentValue - $previousValue) / $previousValue) * 100;
+            }
+
+            $trendData[] = [
+                'tahun' => $item->tahun,
+                'produksi' => $item->total_produksi,
+                'luas_lahan' => $item->total_luas_lahan,
+                'produktivitas' => $produktivitas,
+                'jumlah_komoditas' => $item->jumlah_komoditas,
+                'jumlah_kecamatan' => $item->jumlah_kecamatan,
+                'current_value' => $currentValue,
+                'pertumbuhan' => $pertumbuhan,
+                'metric' => $metric
+            ];
+
+            $previousValue = $currentValue;
+        }
+
+        // Data untuk komoditas trend (jika tidak ada filter komoditas spesifik)
+        $komoditasTrend = [];
+        if (!$komoditasId) {
+            $komoditasQuery = BpsData::with(['komoditas'])
+                ->whereBetween('tahun', [$tahunAwal, $tahunAkhir]);
+
+            // Apply filters yang sama
+            if ($provinsiId) $komoditasQuery->where('provinsi_id', $provinsiId);
+            if ($kabupatenId) $komoditasQuery->where('kabupaten_id', $kabupatenId);
+            if ($kecamatanId) $komoditasQuery->where('kecamatan_id', $kecamatanId);
+            if ($sektorId) $komoditasQuery->where('sektor_id', $sektorId);
+
+            $komoditasData = $komoditasQuery->select(
+                    'tahun',
+                    'komoditas_id',
+                    DB::raw('SUM(produksi) as total_produksi'),
+                    DB::raw('SUM(luas_lahan) as total_luas_lahan')
+                )
+                ->groupBy('tahun', 'komoditas_id')
+                ->orderBy('tahun')
+                ->get();
+
+            // Group by komoditas dan format data
+            $groupedKomoditas = $komoditasData->groupBy('komoditas_id');
+            
+            foreach ($groupedKomoditas as $komoditasId => $items) {
+                $firstItem = $items->first();
+                $komoditasTrend[] = [
+                    'komoditas_id' => $komoditasId,
+                    'nama' => $firstItem->komoditas->nama ?? 'Tidak Diketahui',
+                    'data' => $items->map(function ($item) {
+                        return [
+                            'tahun' => $item->tahun,
+                            'produksi' => $item->total_produksi,
+                            'luas_lahan' => $item->total_luas_lahan,
+                            'produktivitas' => $item->total_luas_lahan > 0 ? $item->total_produksi / $item->total_luas_lahan : 0
+                        ];
+                    })->sortBy('tahun')->values()
+                ];
+            }
+
+            // Urutkan berdasarkan total produksi di tahun terakhir
+            $komoditasTrend = collect($komoditasTrend)->sortByDesc(function ($komoditas) {
+                $lastYear = collect($komoditas['data'])->last();
+                return $lastYear['produksi'] ?? 0;
+            })->take(10)->values();
+        }
+
+        return response()->json([
+            'success' => true,
+            'trend_data' => $trendData,
+            'komoditas_trend' => $komoditasTrend,
+            'filter' => [
+                'tahun_awal' => $tahunAwal,
+                'tahun_akhir' => $tahunAkhir,
+                'provinsi_id' => $provinsiId,
+                'kabupaten_id' => $kabupatenId,
+                'kecamatan_id' => $kecamatanId,
+                'sektor_id' => $sektorId,
+                'komoditas_id' => $komoditasId,
+                'metric' => $metric
+            ],
+            'summary' => [
+                'total_tahun' => count($trendData),
+                'tahun_terakhir' => $data->last()->tahun ?? null,
+                'produksi_terakhir' => $data->last()->total_produksi ?? 0,
+                'pertumbuhan_terakhir' => end($trendData)['pertumbuhan'] ?? null
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Error in apiTrendData: ' . $e->getMessage());
+        return response()->json([
+            'error' => 'Terjadi kesalahan server: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }
